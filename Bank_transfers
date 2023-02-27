@@ -1,0 +1,25 @@
+import pandas as pd
+import numpy as np
+import string
+
+#opening initial list
+All_customs = pd.read_csv('All_customs_.txt',encoding='utf8',sep='\t').applymap(lambda s: s.upper() if type(s) == str else s)
+All_trans_nov_dec = pd.read_csv('All_trans_nov_dec.txt',encoding='utf8',sep='\t').applymap(lambda s: s.upper() if type(s) == str else s)
+
+#data preparation
+All_custom_descr_rows = pd.merge(All_customs,All_trans_nov_dec,how='left', on=['Famil','Surname']).drop_duplicates()
+All_custom_descr_rows['Date_sum'] = All_custom_descr_rows['Date_sum'].apply(lambda x: str(x).replace(')(',' ').replace(')','').replace('(',''))
+All_custom_descr_rows[['Date','Sum']] = All_custom_descr_rows['Date_sum'].str.split(n=1,expand=True)
+All_custom_descr_rows['Date'] = All_custom_descr_rows['Date'].apply(lambda x: str(x).replace('.01.2022',' января').replace('.02.2022',' февраля').replace('.03.2022',' марта')\
+                                                                    .replace('.04.2022',' апреля').replace('.05.2022',' мая').replace('.06.2022',' июня').replace('.07.2022',' июля')\
+                                                                    .replace('.08.2022',' августа').replace('.09.2022',' сентября').replace('.10.2022',' октября').replace('.11.2022',' ноября').replace('.12.2022',' декабря'))
+All_custom_descr_rows[['Date_day','Date_month']] = All_custom_descr_rows['Date'].str.split(n=1,expand=True)
+All_custom_descr_rows[['Num','Sum']] = All_custom_descr_rows['Sum'].str.split(n=1,expand=True)
+All_custom_descr_rows.drop(['Num','Date_sum','Date'], inplace=True, axis=1)
+All_custom_descr_rows = All_custom_descr_rows.reindex(columns=['Surname','Famil','Date_day','Date_month','Sum','Descrip'])
+All_custom_descr_rows.to_excel("All_custom_descr_row.xlsx", encoding='windows-1251')
+
+#searching executors not in initial list
+ff = All_customs.Famil
+All_custom_descr_notinlist = All_trans_nov_dec.query('Famil not in @ff')
+All_custom_descr_notinlist.to_excel("All_custom_descr_notinlist.xlsx", encoding='windows-1251')
