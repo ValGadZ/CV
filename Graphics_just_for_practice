@@ -1,0 +1,61 @@
+import pandas as pd
+import string
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+
+sns.set(style='dark',)
+
+action_df = pd.read_excel('action_data.xlsx').set_index('Unnamed: 0')
+animation_df = pd.read_excel('animation_data.xlsx').set_index('Unnamed: 0')
+crime_df = pd.read_excel('crime_data.xlsx').set_index('Unnamed: 0')
+horror_df = pd.read_excel('horror_data.xlsx').set_index('Unnamed: 0')
+comedy_df = pd.read_excel('Comedy_data.xlsx').set_index('Unnamed: 0')
+films = [action_df,animation_df,crime_df,horror_df,comedy_df]
+films_2 = []
+
+for i in films:
+    i.loc[:, 'year'] = i['year'].str[-5:-1]
+    pd.to_numeric(i['imdb'])
+    i = i.assign(nimdb=lambda x: x.imdb * 10)
+    i = i.loc[i['year'] != 'ovie']
+    i = i.loc[i['year'] != 'ideo']
+    i['year'] = i['year'].astype(int)
+    films_2.append(i)
+
+action = films_2[0]
+animation = films_2[1]
+crime = films_2[2]
+horror = films_2[3]
+comedy = films_2[4]
+
+# print(horror.describe())
+# pd.set_option('display.max_columns', None)
+# pd.set_option('display.max_colwidth', None)
+# pd.set_option('display.max_rows', None)
+
+
+df['rate'] = df['rate'].apply(pd.to_numeric)
+sns.heatmap(.corr(),annot=True)
+plt.show()
+x = df['rating_of_10']
+y = df['length_min']
+plt.scatter(x, y, alpha=1)
+plt.ticklabel_format(style='plain')
+plt.show()
+df.groupby('year')['rating_of_10'].mean().plot(kind='bar', figsize=(16,8))
+plt.show()
+
+df['year'].value_counts().plot(kind='bar', figsize=[14,7])
+plt.show()
+sns.distplot(comedy.nimdb,kde=False,color='r')
+sns.distplot(horror.nimdb,kde=False,color='b',hist_kws={'alpha':1})
+plt.show()
+sns.countplot(x=df.rate)
+plt.xticks(rotation = 45)
+plt.show()
+sns.barplot(x='year',y='rating_of_10',data=df)
+plt.xticks(rotation = 90)
+plt.show()
+df.boxplot(column=['rating_of_10'])
+plt.show()
