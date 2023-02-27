@@ -1,0 +1,79 @@
+import requests
+import re
+import pandas as pd
+import string
+import matplotlib.pyplot as plt
+import seaborn as sns
+from requests import Session
+from bs4 import BeautifulSoup
+from lxml import html
+from time import sleep
+
+class DictList(dict):
+    def __setitem__(self, key, value):
+        try:
+            # Assumes there is a list on the key
+            self[key].append(value)
+        except KeyError: # If it fails, because there is no key
+            super(DictList, self).__setitem__(key, value)
+        except AttributeError: # If it fails because it is not a list
+            super(DictList, self).__setitem__(key, [self[key], value])
+
+
+headers = {'accept-language': 'ru-RU',
+  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36'
+  }
+
+def gettin_film_url():
+    result = requests.get('https://www.imdb.com/chart/top/?ref_=nv_mv_250)',headers=headers)
+    soup = BeautifulSoup(result.text,'lxml')
+    films_block = soup.find('div', attrs={'class':'lister'})
+    films = soup.find_all('td', attrs={'class':'titleColumn'})
+
+    for film in films:
+        try:
+            name = film.find_next('a').text
+            film_url = 'https://www.imdb.com' + film.find_next('a').get('href')
+            rating = film.find_next('strong').text
+
+        except Exception as e:
+            continue
+        yield film_url
+
+dict_films_top250 = DictList()
+
+for link in gettin_film_url():
+    try:
+        sleep(1)
+        response = requests.get(link,headers=headers)
+        soup = BeautifulSoup(response.text,'lxml')
+        per_genre = soup.find('div',attrs={'class':'ipc-chip-list__scroller'}).find_all('span')
+        name = soup.find('div', attrs={'class': 'sc-5be2ae66-2 jaKsxz'}).find('div').text.replace('Original title: ','')
+        year_rate_length = soup.find('div', attrs={'class': 'sc-5be2ae66-2 jaKsxz'}).find_all('li')
+        rating = soup.find('div', attrs={'class': 'sc-7ab21ed2-0 kkdwNM'}).find('span').text + '/10'
+        rating_views = soup.find('div', attrs={'class': 'sc-7ab21ed2-3 iDwwZL'}).text
+        genre = []
+        for i in per_genre:
+            per_g = i.text
+            genre.append(per_g)
+        for g in year_rate_length:
+            year = year_rate_length[0].find('span').text
+            rate = year_rate_length[1].find('span').text
+            length = year_rate_length[2].text.replace(' ','')
+
+        interim_dict = {'name': name,
+                        'genre': genre,
+                        'year': year,
+                        'rate': rate,
+                        'length': length,
+                        'rating': rating,
+                        'rating_views': rating_views,
+                        'url':link}
+        for k, v in interim_dict.items():
+            dict_films_top250[k] = v
+    except Exception as e:
+        continue
+
+user_data_df = pd.DataFrame.from_dict(dict_films_top250,orient='index')
+user_data_df = user_data_df.transpose()
+user_data_df.to_excel("Films_data.xlsx")
